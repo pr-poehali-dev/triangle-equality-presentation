@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
@@ -552,6 +552,17 @@ const slides = [
 
 export default function Index() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = () => {
+    if (!isFullscreen) {
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
 
   const nextSlide = () => {
     if (currentSlide < slides.length - 1) {
@@ -569,32 +580,77 @@ export default function Index() {
     setCurrentSlide(index);
   };
 
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault();
+        if (currentSlide < slides.length - 1) {
+          setCurrentSlide(currentSlide + 1);
+        }
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (currentSlide > 0) {
+          setCurrentSlide(currentSlide - 1);
+        }
+      }
+    };
+
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        setIsFullscreen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, [currentSlide]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-orange-50">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="mb-6">
+    <div className={`min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-orange-50 ${
+      isFullscreen ? 'fixed inset-0 z-50 flex items-center justify-center' : ''
+    }`}>
+      <div className={isFullscreen ? 'w-full h-full flex flex-col' : 'container mx-auto px-4 py-8 max-w-7xl'}>
+        <div className={isFullscreen ? 'px-8 py-4' : 'mb-6'}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-muted-foreground">
               Слайд {currentSlide + 1} из {slides.length}
             </h3>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-4">
               <div className="w-64 h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-primary via-secondary to-accent transition-all duration-300"
                   style={{ width: `${((currentSlide + 1) / slides.length) * 100}%` }}
                 />
               </div>
+              <Button
+                onClick={toggleFullscreen}
+                size="sm"
+                variant="outline"
+                className="flex items-center space-x-2"
+              >
+                <Icon name={isFullscreen ? 'Minimize2' : 'Maximize2'} size={18} />
+                <span>{isFullscreen ? 'Выход' : 'Полный экран'}</span>
+              </Button>
             </div>
           </div>
         </div>
 
-        <Card className="p-8 md:p-12 min-h-[600px] animate-fade-in shadow-2xl">
+        <Card className={`p-8 md:p-12 animate-fade-in shadow-2xl ${
+          isFullscreen ? 'flex-1 mx-8 aspect-video flex items-center justify-center' : 'min-h-[600px]'
+        }`}>
           <div key={currentSlide} className="animate-scale-in">
             {slides[currentSlide].content}
           </div>
         </Card>
 
-        <div className="mt-8 flex items-center justify-between">
+        <div className={`flex items-center justify-between ${
+          isFullscreen ? 'px-8 py-4' : 'mt-8'
+        }`}>
           <Button
             onClick={prevSlide}
             disabled={currentSlide === 0}
